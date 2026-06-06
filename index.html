@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบลางานอัจฉริยะ</title>
+    <!-- โหลด Tailwind CSS เพิ่มความสวยงาม -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- โหลด LINE LIFF SDK เพื่อเชื่อมข้อมูลกับไลน์ -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 space-y-6 border border-slate-200">
+        <!-- ส่วนหัวฟอร์ม -->
+        <div class="text-center">
+            <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">HR E-Leave</span>
+            <h1 class="text-2xl font-bold text-slate-800 mt-2">ยื่นคำขอลางาน</h1>
+            <p class="text-xs text-slate-400 mt-1">กรอกรายละเอียดการลางานผ่านระบบอัตโนมัติ</p>
+        </div>
+
+        <!-- การ์ดแสดงโปรไฟล์ผู้ใช้จาก LINE -->
+        <div class="flex items-center space-x-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <img id="avatar" class="w-12 h-12 rounded-full border-2 border-emerald-400 object-cover" src="https://via.placeholder.com/150" alt="Profile">
+            <div>
+                <p id="displayName" class="font-semibold text-slate-800 text-base">กำลังดึงข้อมูลพนักงาน...</p>
+                <p class="text-xs text-slate-400 font-medium">LINE Connected</p>
+            </div>
+        </div>
+
+        <!-- ฟอร์มกรอกข้อมูล -->
+        <form id="leaveForm" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">ประเภทการลา</label>
+                <select id="leaveType" class="w-full rounded-xl border border-slate-200 p-3 bg-slate-50 text-slate-800 focus:ring-2 focus:ring-emerald-400 focus:bg-white focus:outline-none transition duration-150">
+                    <option value="ลาป่วย">🤒 ลาป่วย (Sick Leave)</option>
+                    <option value="ลากิจ">💼 ลากิจ (Personal Leave)</option>
+                    <option value="ลาพักร้อน">🌴 ลาพักร้อน (Annual Leave)</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">เริ่มต้นวันที่</label>
+                    <input type="date" id="startDate" class="w-full rounded-xl border border-slate-200 p-3 bg-slate-50 focus:ring-2 focus:ring-emerald-400 focus:bg-white focus:outline-none text-slate-800 transition duration-150" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">สิ้นสุดวันที่</label>
+                    <input type="date" id="endDate" class="w-full rounded-xl border border-slate-200 p-3 bg-slate-50 focus:ring-2 focus:ring-emerald-400 focus:bg-white focus:outline-none text-slate-800 transition duration-150" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">เหตุผลความจำเป็น</label>
+                <textarea id="reason" rows="3" placeholder="ระบุเหตุผลการลาอย่างละเอียด..." class="w-full rounded-xl border border-slate-200 p-3 bg-slate-50 focus:ring-2 focus:ring-emerald-400 focus:bg-white focus:outline-none text-slate-800 transition duration-150" required></textarea>
+            </div>
+
+            <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-100 transform active:scale-[0.98]">
+                🚀 ส่งใบลาให้หัวหน้าอนุมัติ
+            </button>
+        </form>
+    </div>
+
+    <script>
+        let userLineId = "";
+        let userName = "";
+        
+        // 🚨 สองบรรทัดนี้เราจะกลับมาใส่หลังจากทำขั้นตอนถัดไปเสร็จครับ
+        const GAS_WEB_APP_URL = "จะเอามาใส่ในขั้นตอนที่ 4"; 
+        const LIFF_ID = "จะเอามาใส่หลังจากสร้าง LIFF ในคอนโซล"; 
+
+        // เริ่มต้นระบบ LINE LIFF ดึงข้อมูลพนักงาน
+        async function initLIFF() {
+            try {
+                await liff.init({ liffId: LIFF_ID });
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    const profile = await liff.getProfile();
+                    userLineId = profile.userId;
+                    userName = profile.displayName;
+                    
+                    document.getElementById("avatar").src = profile.pictureUrl;
+                    document.getElementById("displayName").innerText = profile.displayName;
+                }
+            } catch (error) {
+                console.error("LIFF ล้มเหลว:", error);
+            }
+        }
+
+        // เมื่อกดปุ่มส่งใบลา
+        document.getElementById("leaveForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            if(!userLineId) {
+                alert("ไม่สามารถดึงข้อมูล LINE ID ได้ กรุณาลองใหม่อีกครั้ง");
+                return;
+            }
+
+            const payload = {
+                lineId: userLineId,
+                name: userName,
+                leaveType: document.getElementById("leaveType").value,
+                startDate: document.getElementById("startDate").value,
+                endDate: document.getElementById("endDate").value,
+                reason: document.getElementById("reason").value
+            };
+
+            try {
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                
+                if(result.status === 'success') {
+                    alert("ส่งใบลาสำเร็จ! ระบบกำลังส่งข้อความแจ้งเตือนไปยังหัวหน้าของคุณ");
+                    liff.closeWindow(); // ปิดหน้าต่างฟอร์มใน LINE ทันที
+                } else {
+                    alert("เกิดข้อผิดพลาดจากเซิร์ฟเวอร์: " + result.message);
+                }
+            } catch(err) {
+                alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์หลังบ้านได้");
+            }
+        });
+
+        initLIFF();
+    </script>
+</body>
+</html>

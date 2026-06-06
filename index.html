@@ -4,22 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบลางานอัจฉริยะ</title>
-    <!-- โหลด Tailwind CSS เพิ่มความสวยงาม -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- โหลด LINE LIFF SDK เพื่อเชื่อมข้อมูลกับไลน์ -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
 
     <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 space-y-6 border border-slate-200">
-        <!-- ส่วนหัวฟอร์ม -->
         <div class="text-center">
             <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">HR E-Leave</span>
             <h1 class="text-2xl font-bold text-slate-800 mt-2">ยื่นคำขอลางาน</h1>
             <p class="text-xs text-slate-400 mt-1">กรอกรายละเอียดการลางานผ่านระบบอัตโนมัติ</p>
         </div>
 
-        <!-- การ์ดแสดงโปรไฟล์ผู้ใช้จาก LINE -->
         <div class="flex items-center space-x-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <img id="avatar" class="w-12 h-12 rounded-full border-2 border-emerald-400 object-cover" src="https://via.placeholder.com/150" alt="Profile">
             <div>
@@ -28,14 +24,21 @@
             </div>
         </div>
 
-        <!-- ฟอร์มกรอกข้อมูล -->
         <form id="leaveForm" class="space-y-4">
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">ประเภทการลา</label>
                 <select id="leaveType" class="w-full rounded-xl border border-slate-200 p-3 bg-slate-50 text-slate-800 focus:ring-2 focus:ring-emerald-400 focus:bg-white focus:outline-none transition duration-150">
-                    <option value="ลาป่วย">🤒 ลาป่วย (Sick Leave)</option>
-                    <option value="ลากิจ">💼 ลากิจ (Personal Leave)</option>
-                    <option value="ลาพักร้อน">🌴 ลาพักร้อน (Annual Leave)</option>
+                    <option value="ลาป่วย">🤒 1. ลาป่วย</option>
+                    <option value="ลากิจส่วนตัว">💼 2. ลากิจส่วนตัว</option>
+                    <option value="ลาพัก่อน">🌴 3. ลาพักผ่อน</option>
+                    <option value="ลาคลอดบุตร">👶 4. การลาคลอดบุตร</option>
+                    <option value="ลาช่วยเหลือภริยาที่คลอดบุตร">🍼 5. ลาไปช่วยเหลือภริยาที่คลอดบุตร</option>
+                    <option value="ลาติดตามคู่สมรส">✈️ 6. การลาติดตามคู่สมรส</option>
+                    <option value="ลาอุปสมบท หรือประกอบพิธีฮัจย์">🙏 7. การลาอุปสมบท หรือลาไปประกอบพิธีฮัจย์</option>
+                    <option value="ลาเข้ารับการตรวจเลือก หรือเตรียมพล">🎖️ 8. การลาเข้ารับการตรวจเลือก หรือเข้ารับการเตรียมพล</option>
+                    <option value="ลาศึกษา ฝึกอบรม ดูงาน หรือวิจัย">📚 9. ลาไปศึกษา ฝึกอบรม ดูงาน หรือปฏิบัติการวิจัย</option>
+                    <option value="ลาปฏิบัติงานในองค์การระหว่างประเทศ">🌐 10. ลาไปปฏิบัติงานในองค์การระหว่างประเทศ</option>
+                    <option value="ลาฟื้นฟูสมรรถภาพด้านอาชีพ">💪 11. ลาไปฟื้นฟูสมรรถภาพด้านอาชีพ</option>
                 </select>
             </div>
 
@@ -55,7 +58,7 @@
                 <textarea id="reason" rows="3" placeholder="ระบุเหตุผลการลาอย่างละเอียด..." class="w-full rounded-xl border border-slate-200 p-3 bg-slate-50 focus:ring-2 focus:ring-emerald-400 focus:bg-white focus:outline-none text-slate-800 transition duration-150" required></textarea>
             </div>
 
-            <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-100 transform active:scale-[0.98]">
+            <button type="submit" id="submitBtn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-100 transform active:scale-[0.98]">
                 🚀 ส่งใบลาให้หัวหน้าอนุมัติ
             </button>
         </form>
@@ -65,11 +68,9 @@
         let userLineId = "";
         let userName = "";
         
-        // 🚨 สองบรรทัดนี้เราจะกลับมาใส่หลังจากทำขั้นตอนถัดไปเสร็จครับ
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbywWJ8b1gy0JHaUMNHT1ZD6YuyiNRIUr0W4KNNjFR0mEW1TvNkYOA3QTy4Bf6a_5dKg/exec"; 
         const LIFF_ID = "2010311400-WSF4ErI4"; 
 
-        // เริ่มต้นระบบ LINE LIFF ดึงข้อมูลพนักงาน
         async function initLIFF() {
             try {
                 await liff.init({ liffId: LIFF_ID });
@@ -88,7 +89,6 @@
             }
         }
 
-        // เมื่อกดปุ่มส่งใบลา
         document.getElementById("leaveForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             
@@ -96,6 +96,10 @@
                 alert("ไม่สามารถดึงข้อมูล LINE ID ได้ กรุณาลองใหม่อีกครั้ง");
                 return;
             }
+
+            const btn = document.getElementById("submitBtn");
+            btn.innerText = "⏳ กำลังส่งข้อมูลเข้าระบบ...";
+            btn.disabled = true;
 
             const payload = {
                 lineId: userLineId,
@@ -115,12 +119,16 @@
                 
                 if(result.status === 'success') {
                     alert("ส่งใบลาสำเร็จ! ระบบกำลังส่งข้อความแจ้งเตือนไปยังหัวหน้าของคุณ");
-                    liff.closeWindow(); // ปิดหน้าต่างฟอร์มใน LINE ทันที
+                    liff.closeWindow();
                 } else {
                     alert("เกิดข้อผิดพลาดจากเซิร์ฟเวอร์: " + result.message);
+                    btn.innerText = "🚀 ส่งใบลาให้หัวหน้าอนุมัติ";
+                    btn.disabled = false;
                 }
             } catch(err) {
                 alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์หลังบ้านได้");
+                btn.innerText = "🚀 ส่งใบลาให้หัวหน้าอนุมัติ";
+                btn.disabled = false;
             }
         });
 
